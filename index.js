@@ -8,7 +8,7 @@ import leaderboard from "./routes/leaderboard.js";
 import room from "./routes/room.js"
 
 const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 app.use(morgan("dev"));
 app.use(cors())
