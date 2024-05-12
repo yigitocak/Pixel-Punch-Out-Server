@@ -19,6 +19,6 @@ app.use("/profiles", profiles)
 app.use('/leaderboard', leaderboard)
 app.use('/rooms', room)
 
-app.listen(PORT, `0.0.0.0`, () => {
+app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
