@@ -19,6 +19,9 @@ const storage = multer.diskStorage({
   },
 });
 
+// SECRET KEY
+const SECRET_KEY = process.env.SECRET_KEY
+
 // Create multer instance for handling file uploads
 const upload = multer({ storage: storage });
 
@@ -28,6 +31,91 @@ const db = knex(knexfile.development);
 // Create express router for profile operations
 const profile = express();
 profile.use(express.json());
+
+
+// Route to delete a user profile.
+profile.delete("/:username", authenticateToken, async (req, res) => {
+  const { username } = req.params;
+  const requestingUserId = req.user.id;
+
+  try {
+    const user = await db("users").where({ username }).first();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.id !== requestingUserId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: You can only delete your own profile"
+      });
+    }
+
+    await db("users").where({ username }).del();
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+// Route to increment user's wins
+profile.post("/:username/wins", async (req, res) => {
+  const { username } = req.params;
+  const {secret} = req.body
+
+  try {
+    const user = await db("users").where({ username }).first();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (secret === SECRET_KEY){
+      await db("users")
+          .where({ username })
+          .increment("wins", 1);
+
+      res.status(200).json({ message: "User's wins incremented successfully" });
+    }
+    else{
+      res.sendStatus(403)
+    }
+
+  } catch (error) {
+    console.error("Error incrementing wins:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+// Route to increment user's losses, protected by secret key to only accept requests from the websocket server
+profile.post("/:username/losses", async (req, res) => {
+  const { username } = req.params;
+  const {secret} = req.body
+
+  try {
+    const user = await db("users").where({ username }).first();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (secret === SECRET_KEY) {
+      await db("users")
+          .where({ username })
+          .increment("losses", 1);
+
+      res.status(200).json({ message: "User's losses incremented successfully" });
+    }
+    else{
+      res.sendStatus(403)
+    }
+
+
+  } catch (error) {
+    console.error("Error incrementing losses:", error);
+    res.status(500).send("Internal server error");
+  }
+});
 
 // Route to fetch all user profiles
 profile.get("/", async (req, res) => {
