@@ -77,7 +77,7 @@ profile.post(
 // Route for adding a comment to a user profile
 profile.post("/:username/comments", authenticateToken, async (req, res) => {
   const { username } = req.params;
-  const { commentUsername, comment } = req.body;
+  const { commentUsername, comment, commentPhoto } = req.body;
 
   if (!comment || !commentUsername) {
     return res
@@ -95,7 +95,7 @@ profile.post("/:username/comments", authenticateToken, async (req, res) => {
     const newComment = {
       commentId: crypto.randomUUID(),
       username: commentUsername,
-
+      usernamePhotoUrl: commentPhoto,
       comment: comment,
       timestamp: Date.now(),
     };
