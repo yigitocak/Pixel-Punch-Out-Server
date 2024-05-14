@@ -56,7 +56,3 @@ export const sendEmail = (mailTo) => {
 
   return code;
 };
-
-// Example usage
-const email = 'yigitockk@gmail.com';
-sendEmail(email);
