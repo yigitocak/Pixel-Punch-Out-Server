@@ -44,7 +44,7 @@ export const sendEmail = (mailTo, subject, mode) => {
       const email = encodeURIComponent(mailTo); // Ensure the email is URL-encoded
       htmlWithCode = html.replace(
         "{{link}}",
-        `https://ppo-online.com/reset?email=${email}&code=${code}`,
+        `https://pixel-punch-3j0oqx1w7-yigitocaks-projects.vercel.app/reset?email=${email}&code=${code}`,
       );
     }
 
