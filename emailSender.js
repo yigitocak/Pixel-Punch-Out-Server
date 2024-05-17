@@ -23,23 +23,35 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = (mailTo) => {
+export const sendEmail = (mailTo, subject, mode) => {
   const code = generateCode();
-  const filePath = path.join(__dirname, 'email.html');
+  const filePath =
+    mode === 1
+      ? path.join(__dirname, "email.html")
+      : path.join(__dirname, "forgot_email.html");
 
   // Read the HTML template
-  fs.readFile(filePath, { encoding: 'utf-8' }, (err, html) => {
+  fs.readFile(filePath, { encoding: "utf-8" }, (err, html) => {
     if (err) {
-      console.error('Error reading HTML file:', err);
+      console.error("Error reading HTML file:", err);
       return;
     }
 
-    const htmlWithCode = html.replace('{{verification_code}}', code.toString());
+    let htmlWithCode;
+    if (mode === 1) {
+      htmlWithCode = html.replace("{{verification_code}}", code.toString());
+    } else {
+      const email = encodeURIComponent(mailTo); // Ensure the email is URL-encoded
+      htmlWithCode = html.replace(
+        "{{link}}",
+        `http://localhost:3000/reset?email=${email}&code=${code}`,
+      );
+    }
 
     const mailOptions = {
       from: EMAIL,
       to: mailTo,
-      subject: "Your Verification Code",
+      subject: subject,
       html: htmlWithCode,
     };
 
@@ -47,8 +59,15 @@ export const sendEmail = (mailTo) => {
     const send = async () => {
       try {
         const info = await transporter.sendMail(mailOptions);
+        console.log(
+          "Email sent: ",
+          info.response,
+          mailTo,
+          subject,
+          htmlWithCode,
+        );
       } catch (err) {
-        console.log(err);
+        console.error("Error sending email:", err);
       }
     };
     send();
