@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const EMAIL = process.env.EMAIL;
 const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 const generateCode = () => {
   return Math.floor(100000 + Math.random() * 900000);
@@ -44,7 +45,7 @@ export const sendEmail = (mailTo, subject, mode) => {
       const email = encodeURIComponent(mailTo); // Ensure the email is URL-encoded
       htmlWithCode = html.replace(
         "{{link}}",
-        `https://pixel-punch-3j0oqx1w7-yigitocaks-projects.vercel.app/reset?email=${email}&code=${code}`,
+        `${FRONTEND_URL}reset?email=${email}&code=${code}`,
       );
     }
 
@@ -59,13 +60,7 @@ export const sendEmail = (mailTo, subject, mode) => {
     const send = async () => {
       try {
         const info = await transporter.sendMail(mailOptions);
-        console.log(
-          "Email sent: ",
-          info.response,
-          mailTo,
-          subject,
-          htmlWithCode,
-        );
+        console.log("Email sent: ", info.response, mailTo);
       } catch (err) {
         console.error("Error sending email:", err);
       }
