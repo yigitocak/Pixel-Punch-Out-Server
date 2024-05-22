@@ -139,7 +139,8 @@ auth.post("/login", async (req, res) => {
           message: "oAuth2 Required"
         })
       }
-      const match = await bcrypt.compare(password, user.password);
+      else{
+        const match = await bcrypt.compare(password, user.password);
       if (!match) {
         return res.status(401).json({
           success: false,
@@ -160,6 +161,8 @@ auth.post("/login", async (req, res) => {
         message: rememberMe ? "Logged in for 7d" : "Logged in for 1h",
         username: user.username,
       });
+      }
+
     }
 
     // If user not found in `users`, check the `pending_users` table
