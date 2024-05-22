@@ -128,67 +128,83 @@ auth.post("/login", async (req, res) => {
       message: "Bad request body.",
     });
   }
+
   const { email, password, rememberMe } = req.body;
+
   try {
     // Check if the user exists in the `users` table
     const user = await db("users").where({ email }).first();
     if (user) {
-      if (user.oAuth2){
+      if (user.oAuth2) {
         return res.status(401).json({
           success: false,
           message: "oAuth2 Required"
-        })
-      }
-      else{
-        const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-        return res.status(401).json({
-          success: false,
-          message: "Incorrect password",
         });
+      } else {
+        // Ensure password and user.password are defined
+        if (password && user.password) {
+          const match = await bcrypt.compare(password, user.password);
+          if (!match) {
+            return res.status(401).json({
+              success: false,
+              message: "Incorrect password",
+            });
+          }
+
+          const expiresIn = rememberMe ? "7d" : "1h";
+          const token = jwt.sign(
+            { id: user.id, username: user.username, email: user.email },
+            SECRET_KEY,
+            { expiresIn },
+          );
+
+          return res.status(200).json({
+            success: true,
+            token,
+            message: rememberMe ? "Logged in for 7d" : "Logged in for 1h",
+            username: user.username,
+          });
+        } else {
+          return res.status(500).json({
+            success: false,
+            message: "Server error: Missing password data.",
+          });
+        }
       }
-
-      const expiresIn = rememberMe ? "7d" : "1h";
-      const token = jwt.sign(
-        { id: user.id, username: user.username, email: user.email },
-        SECRET_KEY,
-        { expiresIn },
-      );
-
-      return res.status(200).json({
-        success: true,
-        token,
-        message: rememberMe ? "Logged in for 7d" : "Logged in for 1h",
-        username: user.username,
-      });
-      }
-
     }
 
     // If user not found in `users`, check the `pending_users` table
     const pendingUser = await db("pending_users").where({ email }).first();
     if (pendingUser) {
-      const match = await bcrypt.compare(password, pendingUser.password);
-      if (!match) {
-        return res.status(401).json({
+      // Ensure password and pendingUser.password are defined
+      if (password && pendingUser.password) {
+        const match = await bcrypt.compare(password, pendingUser.password);
+        if (!match) {
+          return res.status(401).json({
+            success: false,
+            message: "Incorrect password",
+          });
+        }
+
+        // Generate a new verification code
+        const newVerificationCode = sendEmail(email, "Your Verification Code", 1);
+
+        // Update the verification code in the `pending_users` table
+        await db("pending_users")
+          .where({ email })
+          .update({ verification_code: newVerificationCode });
+
+        return res.status(200).json({
+          success: true,
+          message:
+            "A new verification code has been sent to your email. Please verify your account.",
+        });
+      } else {
+        return res.status(500).json({
           success: false,
-          message: "Incorrect password",
+          message: "Server error: Missing password data.",
         });
       }
-
-      // Generate a new verification code
-      const newVerificationCode = sendEmail(email, "Your Verification Code", 1);
-
-      // Update the verification code in the `pending_users` table
-      await db("pending_users")
-        .where({ email })
-        .update({ verification_code: newVerificationCode });
-
-      return res.status(200).json({
-        success: true,
-        message:
-          "A new verification code has been sent to your email. Please verify your account.",
-      });
     }
 
     return res.status(404).json({
@@ -203,7 +219,6 @@ auth.post("/login", async (req, res) => {
     });
   }
 });
-
 auth.get("/", authenticateToken, (req, res) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
