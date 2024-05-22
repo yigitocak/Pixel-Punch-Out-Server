@@ -50,6 +50,7 @@ oauth.post("/google/callback", async (req, res) => {
         password: null, // Google OAuth users won't have a password
         photoUrl,
         comments: JSON.stringify([]),
+        oAuth2: true
       });
 
       user = await db("users").where({ email }).first();
