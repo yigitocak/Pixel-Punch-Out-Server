@@ -14,21 +14,20 @@ oauth.use(express.json());
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
 
-oauth.get("/google", (req, res) => {
-  const url = googleClient.generateAuthUrl({
-    access_type: "offline",
-    scope: ["profile", "email"],
-  });
-  res.redirect(url);
-});
+oauth.post("/google/callback", async (req, res) => {
+  const { token } = req.body;
+  console.log("Google token:", token);
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      message: "Token not found",
+    });
+  }
 
-oauth.get("/google/callback", async (req, res) => {
-  const { code } = req.query;
   try {
-    const { tokens } = await googleClient.getToken(code);
-    googleClient.setCredentials(tokens);
+    googleClient.setCredentials({ id_token: token });
     const ticket = await googleClient.verifyIdToken({
-      idToken: tokens.id_token,
+      idToken: token,
       audience: GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
