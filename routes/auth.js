@@ -133,6 +133,12 @@ auth.post("/login", async (req, res) => {
     // Check if the user exists in the `users` table
     const user = await db("users").where({ email }).first();
     if (user) {
+      if (user.oAuth2){
+        return res.status(401).json({
+          success: false,
+          message: "oAuth2 Required"
+        })
+      }
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
         return res.status(401).json({
@@ -225,6 +231,13 @@ auth.post("/reset", async (req, res) => {
         success: false,
         message: "User not found",
       });
+    }
+
+    if (user.oAuth2){
+      return res.status(401).json({
+        success: false,
+        message: "oAuth2"
+      })
     }
 
     // Generate a reset key
