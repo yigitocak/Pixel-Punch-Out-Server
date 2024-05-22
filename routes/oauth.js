@@ -40,7 +40,8 @@ oauth.post("/google/callback", async (req, res) => {
 
     if (!user) {
       // If the user does not exist, create a new user
-      const username = name;
+      let username = name;
+      username = username.replace(" ", "");
       const photoUrl = picture;
 
       await db("users").insert({
