@@ -17,6 +17,7 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
 oauth.post("/google/callback", async (req, res) => {
   const { token } = req.body;
   console.log("Google token:", token);
+
   if (!token) {
     return res.status(400).json({
       success: false,
@@ -53,7 +54,7 @@ oauth.post("/google/callback", async (req, res) => {
       user = await db("users").where({ email }).first();
     }
 
-    const token = jwt.sign(
+    const jwtToken = jwt.sign(
       { id: user.id, username: user.username, email: user.email },
       SECRET_KEY,
       { expiresIn: "1h" },
@@ -61,7 +62,7 @@ oauth.post("/google/callback", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      token,
+      token: jwtToken,
       message: "Logged in successfully",
       username: user.username,
       photoUrl: user.photoUrl,
