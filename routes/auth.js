@@ -151,7 +151,7 @@ auth.post("/login", async (req, res) => {
             });
           }
 
-          const expiresIn = rememberMe ? "7d" : "1h";
+          const expiresIn = rememberMe ? "7d" : "12h";
           const token = jwt.sign(
             { id: user.id, username: user.username, email: user.email },
             SECRET_KEY,
