@@ -59,7 +59,7 @@ oauth.post("/google/callback", async (req, res) => {
     const jwtToken = jwt.sign(
       { id: user.id, username: user.username, email: user.email },
       SECRET_KEY,
-      { expiresIn: "1h" },
+      { expiresIn: "12h" },
     );
 
     res.status(200).json({
