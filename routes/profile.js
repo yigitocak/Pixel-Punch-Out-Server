@@ -4,24 +4,23 @@ import knexfile from "../knexfile.js";
 import "dotenv/config";
 import authenticateToken from "../middlewares/authenticateToken.js";
 import multer from "multer";
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 import path from "path";
-
-const BACKEND_URL = process.env.BACKEND_URL;
+import jwt from "jsonwebtoken";
 
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // Configure multer storage for Cloudinary
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'profilePhotos',
+    folder: "profilePhotos",
     format: async (req, file) => path.extname(file.originalname).slice(1),
     public_id: (req, file) => req.params.username,
   },
@@ -39,6 +38,84 @@ const db = knex(knexfile.development);
 const profile = express();
 profile.use(express.json());
 
+// route to update a username
+profile.post("/username", authenticateToken, async (req, res) => {
+  if (!req.body.username || !req.body.newUsername) {
+    return res.sendStatus(400).json({
+      success: false,
+      message: "Bad Request Body",
+    });
+  }
+
+  const { username, newUsername } = req.body; // Extract new username from the request body
+  const requestingUserId = req.user.id;
+
+  try {
+    // Find the user by the current username
+    const user = await db("users").where({ username }).first();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if the requesting user is the same as the found user
+    if (user.id !== requestingUserId) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only change your own username",
+      });
+    }
+
+    const now = new Date();
+
+    if (user.username_last_changed) {
+      // Check if the last username change was over 30 days ago
+      const lastChanged = new Date(user.username_last_changed);
+      const daysSinceLastChange = Math.floor(
+        (now - lastChanged) / (1000 * 60 * 60 * 24),
+      );
+
+      if (daysSinceLastChange < 15) {
+        const daysLeft = 15 - daysSinceLastChange;
+        return res.status(400).json({
+          success: false,
+          message: `You can change your username in ${daysLeft} days`,
+        });
+      }
+    }
+
+    // Update the username and username_last_changed field
+    await db("users").where({ id: user.id }).update({
+      username: newUsername,
+      username_last_changed: now,
+    });
+
+    // Generate a new JWT token with the new username
+    const newToken = jwt.sign(
+      { id: user.id, username: newUsername, email: user.email },
+      SECRET_KEY,
+      {
+        expiresIn: "12h",
+      },
+    );
+
+    // Respond with success and the new token
+    return res.status(200).json({
+      success: true,
+      message: "Username updated successfully",
+      token: newToken,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 // Route to delete a user profile.
 profile.delete("/:username", authenticateToken, async (req, res) => {
   const { username } = req.params;
@@ -53,7 +130,7 @@ profile.delete("/:username", authenticateToken, async (req, res) => {
     if (user.id !== requestingUserId) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized: You can only delete your own profile"
+        message: "Unauthorized: You can only delete your own profile",
       });
     }
 
@@ -78,15 +155,12 @@ profile.post("/:username/wins", async (req, res) => {
     }
 
     if (secret === SECRET_KEY) {
-      await db("users")
-        .where({ username })
-        .increment("wins", 1);
+      await db("users").where({ username }).increment("wins", 1);
 
       res.status(200).json({ message: "User's wins incremented successfully" });
     } else {
       res.sendStatus(403);
     }
-
   } catch (error) {
     console.error("Error incrementing wins:", error);
     res.status(500).send("Internal server error");
@@ -105,15 +179,14 @@ profile.post("/:username/losses", async (req, res) => {
     }
 
     if (secret === SECRET_KEY) {
-      await db("users")
-        .where({ username })
-        .increment("losses", 1);
+      await db("users").where({ username }).increment("losses", 1);
 
-      res.status(200).json({ message: "User's losses incremented successfully" });
+      res
+        .status(200)
+        .json({ message: "User's losses incremented successfully" });
     } else {
       res.sendStatus(403);
     }
-
   } catch (error) {
     console.error("Error incrementing losses:", error);
     res.status(500).send("Internal server error");
@@ -128,7 +201,7 @@ profile.get("/", async (req, res) => {
       "username",
       "wins",
       "losses",
-      "photoUrl"
+      "photoUrl",
     );
 
     return res.status(200).json(users);
@@ -162,7 +235,7 @@ profile.post(
       console.error("Error saving photo URL to the database:", error);
       res.status(500).send("Internal server error");
     }
-  }
+  },
 );
 
 // Route for adding a comment to a user profile
@@ -224,7 +297,7 @@ profile.delete(
       const currentComments = user.comments || [];
 
       const updatedComments = currentComments.filter(
-        (comment) => comment.commentId !== commentId
+        (comment) => comment.commentId !== commentId,
       );
 
       if (updatedComments.length === currentComments.length) {
@@ -242,7 +315,7 @@ profile.delete(
       console.log(error);
       res.status(500).send("Internal Server Error");
     }
-  }
+  },
 );
 
 // Route to fetch a specific user profile
