@@ -4,26 +4,33 @@ import knexfile from "../knexfile.js";
 import "dotenv/config";
 import authenticateToken from "../middlewares/authenticateToken.js";
 import multer from "multer";
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import path from "path";
+
 const BACKEND_URL = process.env.BACKEND_URL;
 
-// Configuration for storing uploaded files
-const storage = multer.diskStorage({
-  destination: function (req, file, callback) {
-    callback(null, "public/profilePhotos");
-  },
-  filename: function (req, file, callback) {
-    const extension = path.extname(file.originalname);
-    const username = req.params.username;
-    callback(null, username + extension);
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configure multer storage for Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'profilePhotos',
+    format: async (req, file) => path.extname(file.originalname).slice(1),
+    public_id: (req, file) => req.params.username,
   },
 });
 
-// SECRET KEY
-const SECRET_KEY = process.env.SECRET_KEY
-
-// Create multer instance for handling file uploads
 const upload = multer({ storage: storage });
+
+// SECRET KEY
+const SECRET_KEY = process.env.SECRET_KEY;
 
 // Initialize database connection using configuration
 const db = knex(knexfile.development);
@@ -31,7 +38,6 @@ const db = knex(knexfile.development);
 // Create express router for profile operations
 const profile = express();
 profile.use(express.json());
-
 
 // Route to delete a user profile.
 profile.delete("/:username", authenticateToken, async (req, res) => {
@@ -63,35 +69,7 @@ profile.delete("/:username", authenticateToken, async (req, res) => {
 // Route to increment user's wins
 profile.post("/:username/wins", async (req, res) => {
   const { username } = req.params;
-  const {secret} = req.body
-
-  try {
-    const user = await db("users").where({ username }).first();
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (secret === SECRET_KEY){
-      await db("users")
-          .where({ username })
-          .increment("wins", 1);
-
-      res.status(200).json({ message: "User's wins incremented successfully" });
-    }
-    else{
-      res.sendStatus(403)
-    }
-
-  } catch (error) {
-    console.error("Error incrementing wins:", error);
-    res.status(500).send("Internal server error");
-  }
-});
-
-// Route to increment user's losses, protected by secret key to only accept requests from the websocket server
-profile.post("/:username/losses", async (req, res) => {
-  const { username } = req.params;
-  const {secret} = req.body
+  const { secret } = req.body;
 
   try {
     const user = await db("users").where({ username }).first();
@@ -101,15 +79,40 @@ profile.post("/:username/losses", async (req, res) => {
 
     if (secret === SECRET_KEY) {
       await db("users")
-          .where({ username })
-          .increment("losses", 1);
+        .where({ username })
+        .increment("wins", 1);
+
+      res.status(200).json({ message: "User's wins incremented successfully" });
+    } else {
+      res.sendStatus(403);
+    }
+
+  } catch (error) {
+    console.error("Error incrementing wins:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+// Route to increment user's losses
+profile.post("/:username/losses", async (req, res) => {
+  const { username } = req.params;
+  const { secret } = req.body;
+
+  try {
+    const user = await db("users").where({ username }).first();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (secret === SECRET_KEY) {
+      await db("users")
+        .where({ username })
+        .increment("losses", 1);
 
       res.status(200).json({ message: "User's losses incremented successfully" });
+    } else {
+      res.sendStatus(403);
     }
-    else{
-      res.sendStatus(403)
-    }
-
 
   } catch (error) {
     console.error("Error incrementing losses:", error);
@@ -125,7 +128,7 @@ profile.get("/", async (req, res) => {
       "username",
       "wins",
       "losses",
-      "photoUrl",
+      "photoUrl"
     );
 
     return res.status(200).json(users);
@@ -146,7 +149,7 @@ profile.post(
       return res.status(400).send("No file uploaded");
     }
     try {
-      const photoUrl = `${BACKEND_URL}profilePhotos/${req.file.filename}`;
+      const photoUrl = req.file.path;
 
       await db("users").where({ username }).update({ photoUrl });
 
@@ -159,7 +162,7 @@ profile.post(
       console.error("Error saving photo URL to the database:", error);
       res.status(500).send("Internal server error");
     }
-  },
+  }
 );
 
 // Route for adding a comment to a user profile
@@ -221,7 +224,7 @@ profile.delete(
       const currentComments = user.comments || [];
 
       const updatedComments = currentComments.filter(
-        (comment) => comment.commentId !== commentId,
+        (comment) => comment.commentId !== commentId
       );
 
       if (updatedComments.length === currentComments.length) {
@@ -239,7 +242,7 @@ profile.delete(
       console.log(error);
       res.status(500).send("Internal Server Error");
     }
-  },
+  }
 );
 
 // Route to fetch a specific user profile
