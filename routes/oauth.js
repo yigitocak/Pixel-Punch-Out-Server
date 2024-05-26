@@ -50,10 +50,18 @@ oauth.post("/google/callback", async (req, res) => {
         password: null, // Google OAuth users won't have a password
         photoUrl,
         comments: JSON.stringify([]),
-        oAuth2: true
+        oAuth2: true,
+        oauthMethod: "Google",
       });
 
       user = await db("users").where({ email }).first();
+    }
+
+    if (user.oauthMethod !== "Google") {
+      return res.status(403).json({
+        success: false,
+        message: "Wrong authentication method",
+      });
     }
 
     const jwtToken = jwt.sign(

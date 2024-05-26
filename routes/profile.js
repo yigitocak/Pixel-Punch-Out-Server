@@ -202,6 +202,7 @@ profile.get("/", async (req, res) => {
       "wins",
       "losses",
       "photoUrl",
+      "discordID",
     );
 
     return res.status(200).json(users);
