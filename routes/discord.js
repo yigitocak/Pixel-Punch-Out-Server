@@ -84,10 +84,7 @@ oauth.get("/verify/callback", async (req, res) => {
     }
   } catch (error) {
     console.error("Error during OAuth verification:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.redirect("http://localhost:3000/login");
   }
 });
 
@@ -169,16 +166,13 @@ oauth.get("/oauth/callback", async (req, res) => {
       { expiresIn: "12h" },
     );
 
-    // Redirect to your frontend with the token, username, and photoUrl
+    // Redirect frontend with the token, username, and photoUrl
     res.redirect(
       `http://localhost:3000/login?token=${jwtToken}&username=${user.username}&photoUrl=${user.photoUrl}`,
     );
   } catch (error) {
     console.error("Error during Discord login:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    res.redirect("http://localhost:3000/login");
   }
 });
 
