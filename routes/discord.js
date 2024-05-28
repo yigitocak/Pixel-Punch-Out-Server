@@ -9,11 +9,34 @@ const db = knex(knexfile.development);
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const SECRET_KEY = process.env.SECRET_KEY;
-const oauth = express();
-oauth.use(express.json());
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const discord = express();
+discord.use(express.json());
+
+//Route to get discord user data
+discord.post("/getuserdata", async (req, res) => {
+  const { discordId } = req.body;
+  try {
+    const response = await axios.get(
+      `https://discord.com/api/v10/users/${discordId}`,
+      {
+        headers: {
+          Authorization: `Bot ${DISCORD_TOKEN}`,
+        },
+      },
+    );
+    res.status(200).json(response.data);
+  } catch (err) {
+    console.log("Error During Discord Data fetching", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+});
 
 // Redirect to Discord OAuth2 URL for account verification
-oauth.get("/verify", (req, res) => {
+discord.get("/verify", (req, res) => {
   const userId = req.query.user_id;
 
   if (!userId) {
@@ -29,7 +52,7 @@ oauth.get("/verify", (req, res) => {
   res.redirect(url);
 });
 
-oauth.get("/verify/callback", async (req, res) => {
+discord.get("/verify/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
     return res.status(400).json({
@@ -85,19 +108,19 @@ oauth.get("/verify/callback", async (req, res) => {
     }
   } catch (error) {
     console.error("Error during OAuth verification:", error);
-    return res.redirect("http://localhost:3000/login");
+    return res.redirect("http://localhost:3000/login?error=unexpected");
   }
 });
 
 // Redirect to Discord OAuth2 URL for authentication
-oauth.get("/oauth/login", (req, res) => {
+discord.get("/oauth/login", (req, res) => {
   const url =
     "https://discord.com/oauth2/authorize?client_id=1241809773762969640&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fdiscord%2Foauth%2Fcallback&scope=email+identify+guilds";
   res.redirect(url);
 });
 
 // Handle Discord OAuth2 callback for authentication
-oauth.get("/oauth/callback", async (req, res) => {
+discord.get("/oauth/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
     return res.status(400).json({
@@ -177,4 +200,4 @@ oauth.get("/oauth/callback", async (req, res) => {
   }
 });
 
-export default oauth;
+export default discord;
