@@ -173,7 +173,7 @@ oauth.get("/oauth/callback", async (req, res) => {
     );
   } catch (error) {
     console.error("Error during Discord login:", error);
-    res.redirect("http://localhost:3000/login");
+    res.redirect("http://localhost:3000/login?error=discordConflict");
   }
 });
 
