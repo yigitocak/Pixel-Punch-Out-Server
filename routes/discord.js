@@ -10,6 +10,8 @@ const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const SECRET_KEY = process.env.SECRET_KEY;
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const BACKEND_URL = process.env.BACKEND_URL;
 const discord = express();
 discord.use(express.json());
 
@@ -48,7 +50,7 @@ discord.get("/verify", (req, res) => {
 
   req.session.userId = userId;
   const url =
-    "https://discord.com/oauth2/authorize?client_id=1241809773762969640&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fdiscord%2Fverify%2Fcallback&scope=identify+guilds";
+    "https://discord.com/oauth2/authorize?client_id=1241809773762969640&response_type=code&redirect_uri=https%3A%2F%2Fapi.ppo-online.com%2Fdiscord%2Fverify%2Fcallback&scope=identify+email+guilds";
   res.redirect(url);
 });
 
@@ -70,7 +72,7 @@ discord.get("/verify/callback", async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         code: code,
         grant_type: "authorization_code",
-        redirect_uri: "http://localhost:8080/discord/verify/callback",
+        redirect_uri: `${BACKEND_URL}discord/verify/callback`,
       }).toString(),
       {
         headers: {
@@ -99,7 +101,7 @@ discord.get("/verify/callback", async (req, res) => {
       user = await db("users").where("username", userId).first(); // Fetch updated user info
 
       // Redirect to user profile after verification
-      return res.redirect(`http://localhost:3000/profiles/${userId}`);
+      return res.redirect(`${FRONTEND_URL}profiles/${userId}`);
     } else {
       return res.status(404).json({
         success: false,
@@ -108,14 +110,14 @@ discord.get("/verify/callback", async (req, res) => {
     }
   } catch (error) {
     console.error("Error during OAuth verification:", error);
-    return res.redirect("http://localhost:3000/login?error=unexpected");
+    return res.redirect(`${FRONTEND_URL}login?error=unexpected`);
   }
 });
 
 // Redirect to Discord OAuth2 URL for authentication
 discord.get("/oauth/login", (req, res) => {
   const url =
-    "https://discord.com/oauth2/authorize?client_id=1241809773762969640&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fdiscord%2Foauth%2Fcallback&scope=email+identify+guilds";
+    "https://discord.com/oauth2/authorize?client_id=1241809773762969640&response_type=code&redirect_uri=https%3A%2F%2Fapi.ppo-online.com%2Fdiscord%2Foauth%2Fcallback&scope=identify+email+guilds";
   res.redirect(url);
 });
 
@@ -138,7 +140,7 @@ discord.get("/oauth/callback", async (req, res) => {
         client_secret: DISCORD_CLIENT_SECRET,
         code: code,
         grant_type: "authorization_code",
-        redirect_uri: "http://localhost:8080/discord/oauth/callback", // This should match the URL in the Discord Developer Portal
+        redirect_uri: `${BACKEND_URL}discord/oauth/callback`,
       }).toString(),
       {
         headers: {
@@ -192,11 +194,11 @@ discord.get("/oauth/callback", async (req, res) => {
 
     // Redirect frontend with the token, username, and photoUrl
     res.redirect(
-      `http://localhost:3000/login?token=${jwtToken}&username=${user.username}&photoUrl=${user.photoUrl}`,
+      `${FRONTEND_URL}login?token=${jwtToken}&username=${user.username}&photoUrl=${user.photoUrl}`,
     );
   } catch (error) {
     console.error("Error during Discord login:", error);
-    res.redirect("http://localhost:3000/login?error=discordConflict");
+    res.redirect(`${FRONTEND_URL}login?error=discordConflict`);
   }
 });
 
