@@ -52,6 +52,7 @@ oauth.get("/verify/callback", async (req, res) => {
       {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          Encoded: true,
         },
       },
     );
