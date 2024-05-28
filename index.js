@@ -5,19 +5,31 @@ import "dotenv/config";
 import auth from "./routes/auth.js";
 import profiles from "./routes/profile.js";
 import leaderboard from "./routes/leaderboard.js";
-import oauth from "./routes/oauth.js"; // Import the new oauth routes
+import oauth from "./routes/oauth.js";
+import discord from "./routes/discord.js";
+import session from "express-session";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const SECRET_KEY = process.env.SECRET_KEY;
 
 app.use(morgan("dev"));
 app.use(cors());
 app.use(express.static("public"));
 
+app.use(
+  session({
+    secret: SECRET_KEY,
+    resave: false,
+    saveUninitialized: true,
+  }),
+);
+
 app.use("/auth", auth);
 app.use("/profiles", profiles);
 app.use("/leaderboard", leaderboard);
 app.use("/oauth", oauth);
+app.use("/discord", discord);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
