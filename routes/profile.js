@@ -8,6 +8,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import path from "path";
 import jwt from "jsonwebtoken";
+import moment from 'moment-timezone';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -40,15 +41,15 @@ profile.use(express.json());
 
 // route to update a username
 profile.post("/username", authenticateToken, async (req, res) => {
-  if (!req.body.username || !req.body.newUsername) {
+  if (!req.body.newUsername) {
     return res.sendStatus(400).json({
       success: false,
       message: "Bad Request Body",
     });
   }
 
-  const { username, newUsername } = req.body; // Extract new username from the request body
-  const requestingUserId = req.user.id;
+  const { newUsername } = req.body;
+  const username = req.user.username
 
   try {
     // Find the user by the current username
@@ -60,15 +61,7 @@ profile.post("/username", authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if the requesting user is the same as the found user
-    if (user.id !== requestingUserId) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only change your own username",
-      });
-    }
-
-    const now = new Date();
+    const now = moment().tz("America/New_York").toDate();
 
     if (user.username_last_changed) {
       // Check if the last username change was over 30 days ago
