@@ -1,6 +1,6 @@
-import "dotenv/config"
+import "dotenv/config";
 
- const knexConfig = {
+const knexConfig = {
   development: {
     client: 'mysql2',
     connection: {
@@ -12,6 +12,20 @@ import "dotenv/config"
     migrations: {
       tableName: 'knex_migrations'
     }
+  },
+  test: {
+    client: 'sqlite3',
+    connection: {
+      filename: './test.sqlite'
+    },
+    useNullAsDefault: true,
+    migrations: {
+      directory: './migrations'
+    },
+    seeds: {
+      directory: './seeds'
+    }
   }
 };
-export default knexConfig
+
+export default knexConfig;
