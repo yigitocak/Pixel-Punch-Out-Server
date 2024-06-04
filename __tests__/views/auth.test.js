@@ -16,10 +16,7 @@ import bcrypt from "bcrypt";
 import authenticateToken from "../../middlewares/authenticateToken.js";
 dotenv.config();
 
-const environment = process.env.NODE_ENV || "development";
-const config =
-  environment === "test" ? knexfile.development : knexfile.production;
-const db = knex(config);
+const db = knex(knexfile.development);
 
 const app = express();
 app.use(express.json());

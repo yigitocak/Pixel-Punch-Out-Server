@@ -7,11 +7,7 @@ import { LeaderboardView } from "../../views/LeaderboardViews.js";
 import bcrypt from "bcrypt";
 
 dotenv.config();
-
-const environment = process.env.NODE_ENV || "development";
-const config =
-  environment === "test" ? knexfile.development : knexfile.production;
-const db = knex(config);
+const db = knex(knexfile.development);
 
 const app = express();
 app.get("/", LeaderboardView);
