@@ -1,10 +1,8 @@
-
-    exports.seed = async function(knex) {
-      // Deletes ALL existing entries
-      await knex('users').del();
-await knex('pending_users').del();
-      // Inserts seed entries
-      await knex('users').insert([
+export async function seed(knex) {
+  // Deletes ALL existing entries
+  await knex('users').del();
+  // Inserts seed entries
+  await knex('users').insert([
   {
     "id": 27,
     "username": "ozkan",
@@ -230,19 +228,44 @@ await knex('pending_users').del();
     "password": null,
     "wins": 0,
     "losses": 0,
-    "comments": [],
+    "comments": [
+      {
+        "comment": "nabersin",
+        "username": "Sikik",
+        "commentId": "722d3f7b-c09a-499f-abd3-7939d50d87ad",
+        "timestamp": 1717390020802,
+        "usernamePhotoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ_aPDxkMNFfCwe_zbNkTPsp9uaWon-XPqUro5an-YPaqLMYW8=s96-c"
+      }
+    ],
     "photoUrl": "https://res.cloudinary.com/dwgpm3mdl/image/upload/v1716879334/profilePhotos/Alu.jpg",
     "resetKey": null,
     "oAuth2": 1,
     "username_last_changed": "2024-05-30T01:26:31.000Z",
     "discordID": "320182429761404930",
     "oauthMethod": "Google",
-    "admin": 0,
+    "admin": 1,
     "created_at": null
   },
   {
-    "id": 111,
-    "username": "Oraa",
+    "id": 113,
+    "username": "zamaz",
+    "email": "ashthetaction@gmail.com",
+    "password": "$2b$10$UIRCimm3Xe4wEoCFadvFXOoULtXhaLH9qDiVLMxTiQ5yBt9ivJ50S",
+    "wins": 0,
+    "losses": 0,
+    "comments": [],
+    "photoUrl": "https://api.ppo-online.com/profilePhotos/default.jpeg",
+    "resetKey": null,
+    "oAuth2": 0,
+    "username_last_changed": "2024-06-02T17:04:47.000Z",
+    "discordID": null,
+    "oauthMethod": null,
+    "admin": 0,
+    "created_at": "2024-06-02T17:04:21.000Z"
+  },
+  {
+    "id": 115,
+    "username": "SikSuratli",
     "email": "owenorcan@gmail.com",
     "password": null,
     "wins": 0,
@@ -251,30 +274,11 @@ await knex('pending_users').del();
     "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ_aPDxkMNFfCwe_zbNkTPsp9uaWon-XPqUro5an-YPaqLMYW8=s96-c",
     "resetKey": null,
     "oAuth2": 1,
-    "username_last_changed": "2024-05-29T23:32:02.000Z",
+    "username_last_changed": null,
     "discordID": null,
     "oauthMethod": "Google",
-    "admin": 0,
-    "created_at": "2024-05-29T23:04:37.000Z"
+    "admin": 1,
+    "created_at": "2024-06-03T04:50:02.000Z"
   }
 ]);
-await knex('pending_users').insert([
-  {
-    "id": 58,
-    "username": "sun25",
-    "email": "christofirelee@gmail.com",
-    "password": "$2b$10$qTLsWZJHP2JaUrdCdfdwqOu/ddTOkYw9BYuhCVGCic6.gsL1Ow.Xe",
-    "verification_code": "817369",
-    "created_at": "2024-05-22T09:51:26.000Z"
-  },
-  {
-    "id": 72,
-    "username": "ash",
-    "email": "ashthetaction@gmail.com",
-    "password": "$2b$10$qfh7vvCdtGyYSMphEQxrBO2MJgmr000HLbjrdAqL6.CP4SCgmS5e.",
-    "verification_code": "582000",
-    "created_at": "2024-05-30T01:45:31.000Z"
-  }
-]);
-    };
-  
+};
