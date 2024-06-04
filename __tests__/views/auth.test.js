@@ -3,8 +3,14 @@ import express from "express";
 import knex from "knex";
 import knexfile from "../../knexfile.js";
 import dotenv from "dotenv";
-import { LoginView, SignUpView, VerifyView } from "../../views/AuthViews.js";
+import {
+  DecodeView,
+  LoginView,
+  SignUpView,
+  VerifyView,
+} from "../../views/AuthViews.js";
 import bcrypt from "bcrypt";
+import authenticateToken from "../../middlewares/authenticateToken.js";
 
 dotenv.config();
 
@@ -18,7 +24,9 @@ app.use(express.json());
 app.post("/signup", SignUpView);
 app.post("/verify", VerifyView);
 app.post("/login", LoginView);
+app.get("/decode", authenticateToken, DecodeView);
 
+// SIGNUP TESTS
 describe("AuthViews - SignUpView", () => {
   it("should create a field in the pending_users table", async () => {
     const response = await request(app).post("/signup").send({
@@ -40,6 +48,7 @@ describe("AuthViews - SignUpView", () => {
   });
 });
 
+// VERIFY TESTS
 describe("AuthViews - VerifyView", () => {
   afterAll(async () => {
     await db("users").where("email", "testuser@example.com").del();
@@ -96,6 +105,7 @@ describe("AuthViews - VerifyView", () => {
   });
 });
 
+// LOGIN TESTS
 describe("AuthViews - LoginView", () => {
   const testUser = {
     username: "testuser",
@@ -178,5 +188,47 @@ describe("AuthViews - LoginView", () => {
     expect(response.statusCode).toBe(404);
     expect(response.body.success).toBe(false);
     expect(response.body.message).toBe("User not found");
+  });
+});
+
+describe("AuthViews - DecodeView", () => {
+  const testUser = {
+    username: "testuser",
+    email: "testuser@example.com",
+    password: "password123",
+  };
+  beforeEach(async () => {
+    // Clean up the db
+    await db("users").del();
+    await db("pending_users").del();
+
+    // Manually put user
+    const hashedPassword = await bcrypt.hash(testUser.password, 10);
+    await db("users").insert({
+      username: testUser.username,
+      email: testUser.email,
+      password: hashedPassword,
+    });
+  });
+  afterAll(async () => {
+    await db("users").del();
+    await db("pending_users").del();
+  });
+  it("Should return correct data for token", async () => {
+    const loginResponse = await request(app).post("/login").send({
+      email: testUser.email,
+      password: testUser.password,
+    });
+
+    const token = loginResponse.body.token;
+
+    const response = await request(app)
+      .get("/decode")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.decoded.username).toBe(testUser.username);
+    expect(response.body.decoded.email).toBe(testUser.email);
   });
 });
