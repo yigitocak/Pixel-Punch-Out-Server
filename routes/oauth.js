@@ -5,7 +5,11 @@ import knexfile from "../knexfile.js";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 
-const db = knex(knexfile.development);
+const environment = process.env.NODE_ENV || "development";
+const config =
+  environment === "test" ? knexfile.development : knexfile.production;
+const db = knex(config);
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const SECRET_KEY = process.env.SECRET_KEY;

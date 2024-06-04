@@ -8,7 +8,12 @@ import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import path from "path";
 import jwt from "jsonwebtoken";
-import moment from 'moment-timezone';
+import moment from "moment-timezone";
+
+const environment = process.env.NODE_ENV || "development";
+const config =
+  environment === "test" ? knexfile.development : knexfile.production;
+const db = knex(config);
 
 // Configure Cloudinary
 cloudinary.config({
@@ -32,9 +37,6 @@ const upload = multer({ storage: storage });
 // SECRET KEY
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// Initialize database connection using configuration
-const db = knex(knexfile.development);
-
 // Create express router for profile operations
 const profile = express();
 profile.use(express.json());
@@ -49,7 +51,7 @@ profile.post("/username", authenticateToken, async (req, res) => {
   }
 
   const { newUsername } = req.body;
-  const username = req.user.username
+  const username = req.user.username;
 
   try {
     // Find the user by the current username
