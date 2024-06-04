@@ -6,12 +6,14 @@ import dotenv from "dotenv";
 import {
   DecodeView,
   LoginView,
+  ResetPasswordView,
+  ResetView,
   SignUpView,
+  ValidateResetView,
   VerifyView,
 } from "../../views/AuthViews.js";
 import bcrypt from "bcrypt";
 import authenticateToken from "../../middlewares/authenticateToken.js";
-
 dotenv.config();
 
 const environment = process.env.NODE_ENV || "development";
@@ -25,6 +27,9 @@ app.post("/signup", SignUpView);
 app.post("/verify", VerifyView);
 app.post("/login", LoginView);
 app.get("/decode", authenticateToken, DecodeView);
+app.post("/reset", ResetView);
+app.post("/validateReset", ValidateResetView);
+app.post("/resetPassword", ResetPasswordView);
 
 // SIGNUP TESTS
 describe("AuthViews - SignUpView", () => {
@@ -230,5 +235,189 @@ describe("AuthViews - DecodeView", () => {
     expect(response.body.success).toBe(true);
     expect(response.body.decoded.username).toBe(testUser.username);
     expect(response.body.decoded.email).toBe(testUser.email);
+  });
+});
+
+// Password Reset Tests
+describe("AuthViews - Reset Password", () => {
+  const testUser = {
+    username: "testuser",
+    email: "testuser@example.com",
+    password: "password123",
+  };
+
+  beforeEach(async () => {
+    // Clean up the db
+    await db("users").del();
+    await db("pending_users").del();
+
+    // Manually insert user
+    const hashedPassword = await bcrypt.hash(testUser.password, 10);
+    await db("users").insert({
+      username: testUser.username,
+      email: testUser.email,
+      password: hashedPassword,
+    });
+  });
+
+  afterAll(async () => {
+    await db("users").del();
+    await db("pending_users").del();
+  });
+
+  describe("ResetView", () => {
+    it("should send a reset email to an existing user", async () => {
+      const response = await request(app).post("/reset").send({
+        email: testUser.email,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe("An email has been sent");
+
+      const user = await db("users").where({ email: testUser.email }).first();
+      expect(user.resetKey).not.toBeNull();
+    });
+
+    it("should return 400 for a bad request body", async () => {
+      const response = await request(app).post("/reset").send({});
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Bad request body");
+    });
+
+    it("should return 404 for a non-existent user", async () => {
+      const response = await request(app).post("/reset").send({
+        email: "nonexistent@example.com",
+      });
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("User not found");
+    });
+
+    it("should return 401 if user is using oAuth2", async () => {
+      await db("users")
+        .where({ email: testUser.email })
+        .update({ oAuth2: true });
+
+      const response = await request(app).post("/reset").send({
+        email: testUser.email,
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("oAuth2");
+    });
+  });
+
+  describe("ValidateResetView", () => {
+    it("should validate a correct reset code", async () => {
+      const resetKey = "123456";
+      await db("users").where({ email: testUser.email }).update({ resetKey });
+
+      const response = await request(app).post("/validateReset").send({
+        email: testUser.email,
+        code: resetKey,
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should return 403 for an incorrect reset code", async () => {
+      const resetKey = "123456";
+      await db("users").where({ email: testUser.email }).update({ resetKey });
+
+      const response = await request(app).post("/validateReset").send({
+        email: testUser.email,
+        code: "wrongcode",
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it("should return 404 for a non-existent user", async () => {
+      const response = await request(app).post("/validateReset").send({
+        email: "nonexistent@example.com",
+        code: "123456",
+      });
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("User not found");
+    });
+
+    it("should return 400 for a bad request body", async () => {
+      const response = await request(app).post("/validateReset").send({
+        email: testUser.email,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Bad request body");
+    });
+  });
+
+  describe("ResetPasswordView", () => {
+    it("should reset the password with a valid reset code and secret", async () => {
+      const resetKey = "123456";
+      await db("users").where({ email: testUser.email }).update({ resetKey });
+
+      const newPassword = "newpassword123";
+      const response = await request(app).post("/resetPassword").send({
+        email: testUser.email,
+        newPassword,
+        secret: process.env.SECRET_KEY,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe("Password reset successfully");
+
+      const user = await db("users").where({ email: testUser.email }).first();
+      const isPasswordMatch = await bcrypt.compare(newPassword, user.password);
+      expect(isPasswordMatch).toBe(true);
+    });
+
+    it("should return 403 for an incorrect secret", async () => {
+      const resetKey = "123456";
+      await db("users").where({ email: testUser.email }).update({ resetKey });
+
+      const newPassword = "newpassword123";
+      const response = await request(app).post("/resetPassword").send({
+        email: testUser.email,
+        newPassword,
+        secret: "wrongsecret",
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Forbidden");
+    });
+
+    it("should return 404 for a non-existent user", async () => {
+      const newPassword = "newpassword123";
+      const response = await request(app).post("/resetPassword").send({
+        email: "nonexistent@example.com",
+        newPassword,
+        secret: process.env.SECRET_KEY,
+      });
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("User not found");
+    });
+
+    it("should return 400 for a bad request body", async () => {
+      const response = await request(app).post("/resetPassword").send({
+        email: testUser.email,
+        secret: process.env.SECRET_KEY,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Bad request body");
+    });
   });
 });
