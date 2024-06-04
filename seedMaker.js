@@ -1,45 +1,50 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
 import knex from "knex";
 import knexfile from "./knexfile.js";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
+import path from "path";
 
+// Fixing the __filename and __dirname for ES6
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const db = knex(knexfile.development);
+// Initialize Knex instance for production environment
+const db = knex(knexfile.production);
 
-const tables = ['users', 'pending_users'];
-
-const fetchData = async () => {
-  const data = {};
-  for (const table of tables) {
-    data[table] = await db(table).select('*');
-  }
+// Function to generate seed data for a table
+const generateSeedData = async (tableName) => {
+  const data = await db(tableName).select("*");
   return data;
 };
 
-const writeSeedFile = (data) => {
-  const seedFileContent = `
-    exports.seed = async function(knex) {
-      // Deletes ALL existing entries
-      ${tables.map(table => `await knex('${table}').del();`).join('\n')}
-      // Inserts seed entries
-      ${tables.map(table => `await knex('${table}').insert(${JSON.stringify(data[table], null, 2)});`).join('\n')}
-    };
-  `;
+// Function to write seed file
+const writeSeedFile = (tableName, data) => {
+  const seedFileContent = `export async function seed(knex) {
+  // Deletes ALL existing entries
+  await knex('${tableName}').del();
+  // Inserts seed entries
+  await knex('${tableName}').insert(${JSON.stringify(data, null, 2)});
+};`;
 
-  const seedFilePath = path.join(__dirname, 'seeds', 'initial_seed.js');
+  const seedFilePath = path.join(__dirname, "seeds", `${tableName}.js`);
   fs.writeFileSync(seedFilePath, seedFileContent);
   console.log(`Seed data written to ${seedFilePath}`);
 };
 
-fetchData()
-  .then(data => {
-    writeSeedFile(data);
-    process.exit(0);
-  })
-  .catch(err => {
-    console.error('Error generating seed data:', err);
-    process.exit(1);
-  });
+// Main function to generate seed files for specified tables
+const main = async () => {
+  const tables = ["users", "pending_users"];
+
+  for (const table of tables) {
+    const data = await generateSeedData(table);
+    writeSeedFile(table, data);
+  }
+
+  console.log("Seed files created successfully.");
+  process.exit(0);
+};
+
+main().catch((error) => {
+  console.error("Error generating seed files:", error);
+  process.exit(1);
+});
