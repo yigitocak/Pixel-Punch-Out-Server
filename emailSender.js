@@ -60,7 +60,6 @@ export const sendEmail = (mailTo, subject, mode) => {
     const send = async () => {
       try {
         const info = await transporter.sendMail(mailOptions);
-        console.log("Email sent: ", info.response, mailTo);
       } catch (err) {
         console.error("Error sending email:", err);
       }
