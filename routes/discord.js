@@ -5,7 +5,11 @@ import knexfile from "../knexfile.js";
 import "dotenv/config";
 import axios from "axios";
 
-const db = knex(knexfile.development);
+const environment = process.env.NODE_ENV || "development";
+const config =
+  environment === "test" ? knexfile.development : knexfile.production;
+const db = knex(config);
+
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const SECRET_KEY = process.env.SECRET_KEY;
