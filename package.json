@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx",
+    "testenv": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx\n",
+    "test": "jest --runInBand --verbose --detectOpenHandles",
     "db:migrate": "npx knex migrate:latest"
   },
   "keywords": [],
