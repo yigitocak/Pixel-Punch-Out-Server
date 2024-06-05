@@ -14,6 +14,8 @@ import {
 } from "../../views/AuthViews.js";
 import bcrypt from "bcrypt";
 import authenticateToken from "../../middlewares/authenticateToken.js";
+import moment from "moment-timezone";
+
 dotenv.config();
 
 const db = knex(knexfile.development);
@@ -235,7 +237,6 @@ describe("AuthViews - DecodeView", () => {
   });
 });
 
-// Password Reset Tests
 describe("AuthViews - Reset Password", () => {
   const testUser = {
     username: "testuser",
@@ -274,6 +275,7 @@ describe("AuthViews - Reset Password", () => {
 
       const user = await db("users").where({ email: testUser.email }).first();
       expect(user.resetKey).not.toBeNull();
+      expect(user.resetKey_expiration).not.toBeNull();
     });
 
     it("should return 400 for a bad request body", async () => {
@@ -312,7 +314,14 @@ describe("AuthViews - Reset Password", () => {
   describe("ValidateResetView", () => {
     it("should validate a correct reset code", async () => {
       const resetKey = "123456";
-      await db("users").where({ email: testUser.email }).update({ resetKey });
+      const resetKeyExpiration = moment()
+        .tz("America/New_York")
+        .add(60, "minutes")
+        .format();
+
+      await db("users")
+        .where({ email: testUser.email })
+        .update({ resetKey, resetKey_expiration: resetKeyExpiration });
 
       const response = await request(app).post("/validateReset").send({
         email: testUser.email,
@@ -321,10 +330,15 @@ describe("AuthViews - Reset Password", () => {
 
       expect(response.statusCode).toBe(200);
     });
-
     it("should return 403 for an incorrect reset code", async () => {
       const resetKey = "123456";
-      await db("users").where({ email: testUser.email }).update({ resetKey });
+      const resetKeyExpiration = moment()
+        .tz("America/New_York")
+        .add(10, "minutes")
+        .format();
+      await db("users")
+        .where({ email: testUser.email })
+        .update({ resetKey, resetKey_expiration: resetKeyExpiration });
 
       const response = await request(app).post("/validateReset").send({
         email: testUser.email,
@@ -354,12 +368,36 @@ describe("AuthViews - Reset Password", () => {
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe("Bad request body");
     });
+
+    it("should return 403 if reset code has expired", async () => {
+      const resetKey = "123456";
+      const resetKeyExpiration = moment()
+        .tz("America/New_York")
+        .subtract(1, "minutes")
+        .format();
+      await db("users")
+        .where({ email: testUser.email })
+        .update({ resetKey, resetKey_expiration: resetKeyExpiration });
+
+      const response = await request(app).post("/validateReset").send({
+        email: testUser.email,
+        code: resetKey,
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
   });
 
   describe("ResetPasswordView", () => {
     it("should reset the password with a valid reset code and secret", async () => {
       const resetKey = "123456";
-      await db("users").where({ email: testUser.email }).update({ resetKey });
+      const resetKeyExpiration = moment()
+        .tz("America/New_York")
+        .add(10, "minutes")
+        .format();
+      await db("users")
+        .where({ email: testUser.email })
+        .update({ resetKey, resetKey_expiration: resetKeyExpiration });
 
       const newPassword = "newpassword123";
       const response = await request(app).post("/resetPassword").send({
@@ -379,7 +417,13 @@ describe("AuthViews - Reset Password", () => {
 
     it("should return 403 for an incorrect secret", async () => {
       const resetKey = "123456";
-      await db("users").where({ email: testUser.email }).update({ resetKey });
+      const resetKeyExpiration = moment()
+        .tz("America/New_York")
+        .add(10, "minutes")
+        .format();
+      await db("users")
+        .where({ email: testUser.email })
+        .update({ resetKey, resetKey_expiration: resetKeyExpiration });
 
       const newPassword = "newpassword123";
       const response = await request(app).post("/resetPassword").send({

@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import knex from "knex";
 import knexfile from "../knexfile.js";
 import "dotenv/config";
+import moment from "moment-timezone";
 import { sendEmail } from "../emailSender.js";
 
 const environment = process.env.NODE_ENV;
@@ -284,8 +285,16 @@ export async function ResetView(req, res) {
     // Generate a reset key
     const resetKey = sendEmail(email, "Password Reset", 2);
 
-    // Update the user's `resetKey` column
-    await db("users").where({ email }).update({ resetKey });
+    // Calculate the expiration time (10 minutes from now in New York time)
+    const resetKeyExpiration = moment()
+      .tz("America/New_York")
+      .add(10, "minutes")
+      .format();
+
+    // Update the user's `resetKey` and `resetKey_expiration` columns
+    await db("users")
+      .where({ email })
+      .update({ resetKey, resetKey_expiration: resetKeyExpiration });
 
     res.status(200).json({
       success: true,
@@ -322,7 +331,13 @@ export async function ValidateResetView(req, res) {
       });
     }
 
-    if (user.resetKey === code) {
+    // Check if the reset key is valid and not expired
+    const now = moment().tz("America/New_York").format();
+    const resetKeyExpiration = moment(user.resetKey_expiration)
+      .tz("America/New_York")
+      .format();
+
+    if (user.resetKey === code && now <= resetKeyExpiration) {
       return res.sendStatus(200);
     } else {
       return res.sendStatus(403);
