@@ -17,8 +17,8 @@ const NODE_ENV = process.env.NODE_ENV;
 const allowedOrigins = ["https://ppo-online.com", "https://dev.ppo-online.com"];
 
 // Allow localhost only in development or test environments
-if (NODE_ENV === "development" || NODE_ENV === "test") {
-  allowedOrigins.push("http://localhost");
+if (NODE_ENV === "test") {
+  allowedOrigins.push("http://localhost:3000");
 }
 
 const corsOptions = {
