@@ -17,6 +17,7 @@ import {
   IncrementLossesView,
   IncrementWinsView,
   UploadPhotoView,
+  FetchSpecificUserWithId,
 } from "../views/ProfileViews.js";
 
 const environment = process.env.NODE_ENV || "development";
@@ -61,6 +62,9 @@ profile.post("/:username/losses", IncrementLossesView);
 
 // Route to fetch all user profiles
 profile.get("/", FetchAllUsersView);
+
+// Route to fetch spesific user with id
+profile.get("/id/:id", FetchSpecificUserWithId);
 
 // Route for uploading a user photo
 profile.post(
