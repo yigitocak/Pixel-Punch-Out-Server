@@ -5,7 +5,11 @@ import knexfile from "../knexfile.js";
 import "dotenv/config";
 import axios from "axios";
 
-const db = knex(knexfile.development);
+const environment = process.env.NODE_ENV || "development";
+const config =
+  environment === "test" ? knexfile.development : knexfile.production;
+const db = knex(config);
+
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -57,10 +61,7 @@ discord.get("/verify", (req, res) => {
 discord.get("/verify/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
-    return res.status(400).json({
-      success: false,
-      message: "Authorization code not found",
-    });
+    return res.redirect(`${BACKEND_URL}login`);
   }
 
   try {
@@ -125,10 +126,7 @@ discord.get("/oauth/login", (req, res) => {
 discord.get("/oauth/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
-    return res.status(400).json({
-      success: false,
-      message: "Authorization code not found",
-    });
+    return res.redirect(`${BACKEND_URL}login`);
   }
 
   try {

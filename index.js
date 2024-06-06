@@ -12,9 +12,30 @@ import session from "express-session";
 const app = express();
 const PORT = process.env.PORT || 8080;
 const SECRET_KEY = process.env.SECRET_KEY;
+const NODE_ENV = process.env.NODE_ENV;
+
+const allowedOrigins = ["https://ppo-online.com", "https://dev.ppo-online.com"];
+
+// Allow localhost only in development or test environments
+if (NODE_ENV === "test") {
+  allowedOrigins.push("http://localhost:3000");
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
 
 app.use(morgan("dev"));
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.static("public"));
 
 app.use(
