@@ -313,6 +313,35 @@ export async function DeleteCommentView(req, res) {
   }
 }
 
+// View to Fetch a specific User with id
+export async function FetchSpecificUserWithId(req, res) {
+  const { id } = req.params;
+
+  try {
+    const user = await db("users").where({ id }).first();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const { password, email, ...userDetails } = user;
+
+    res.json({
+      success: true,
+      profile: userDetails,
+      message: "User profile fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+}
+
 // View to Fetch a specific User
 export async function FetchSpecificUser(req, res) {
   const { username } = req.params;
