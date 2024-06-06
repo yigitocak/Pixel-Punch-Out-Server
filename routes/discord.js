@@ -61,7 +61,7 @@ discord.get("/verify", (req, res) => {
 discord.get("/verify/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
-    return res.redirect(`${BACKEND_URL}login`);
+    return res.redirect(`${FRONTEND_URL}login`);
   }
 
   try {
@@ -126,7 +126,7 @@ discord.get("/oauth/login", (req, res) => {
 discord.get("/oauth/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) {
-    return res.redirect(`${BACKEND_URL}login`);
+    return res.redirect(`${FRONTEND_URL}login`);
   }
 
   try {
