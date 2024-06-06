@@ -14,8 +14,8 @@ const createApp = (nodeEnv) => {
     "https://dev.ppo-online.com",
   ];
 
-  if (nodeEnv === "development" || nodeEnv === "test") {
-    allowedOrigins.push("http://localhost");
+  if (nodeEnv === "test") {
+    allowedOrigins.push("http://localhost:3000");
   }
 
   const corsOptions = {
@@ -68,7 +68,7 @@ describe("CORS Configuration", () => {
     const app = createApp(process.env.NODE_ENV);
     const response = await request(app)
       .get("/test")
-      .set("Origin", "http://localhost");
+      .set("Origin", "http://localhost:3000");
 
     expect(response.statusCode).toBe(200);
   });
@@ -78,7 +78,7 @@ describe("CORS Configuration", () => {
     const app = createApp(process.env.NODE_ENV);
     const response = await request(app)
       .get("/test")
-      .set("Origin", "http://localhost");
+      .set("Origin", "http://localhost:3000");
 
     expect(response.statusCode).toBe(500);
   });
