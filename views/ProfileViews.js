@@ -252,14 +252,16 @@ export async function AddCommentView(req, res) {
 
   try {
     const user = await db("users").where({ username }).first();
-
+    const commenterUser = await db("users")
+      .where("username", commentUsername)
+      .first();
     if (!user) {
       return res.status(404).send("User not found");
     }
 
     const newComment = {
       commentId: crypto.randomUUID(),
-      id: user.id,
+      id: commenterUser.id,
       comment: comment,
       timestamp: Date.now(),
     };
